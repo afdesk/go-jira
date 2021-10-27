@@ -382,6 +382,38 @@ func (t *BasicAuthTransport) transport() http.RoundTripper {
 	return http.DefaultTransport
 }
 
+// BearerTokenAuthTransport is an http.RoundTripper that authenticates all requests
+// using HTTP Bearer Authentication with the provided token.
+type BearerTokenAuthTransport struct {
+	Token string
+
+	// Transport is the underlying HTTP transport to use when making requests.
+	// It will default to http.DefaultTransport if nil.
+	Transport http.RoundTripper
+}
+
+// RoundTrip implements the RoundTripper interface.  We just add the
+// Header Authorization in request and return the RoundTripper for this transport type.
+func (t *BearerTokenAuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req2 := cloneRequest(req) // per RoundTripper contract
+
+	req2.Header.Add("Authorization", "Bearer "+t.Token)
+	return t.transport().RoundTrip(req2)
+}
+
+// Client returns an *http.Client that makes requests that are authenticated
+// using HTTP Bearer Authentication.
+func (t *BearerTokenAuthTransport) Client() *http.Client {
+	return &http.Client{Transport: t}
+}
+
+func (t *BearerTokenAuthTransport) transport() http.RoundTripper {
+	if t.Transport != nil {
+		return t.Transport
+	}
+	return http.DefaultTransport
+}
+
 // CookieAuthTransport is an http.RoundTripper that authenticates all requests
 // using Jira's cookie-based authentication.
 //
