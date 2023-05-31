@@ -48,6 +48,22 @@ type MetaIssueType struct {
 	Fields      tcontainer.MarshalMap `json:"fields,omitempty"`
 }
 
+type PageOfCreateMetaIssueType struct {
+	Last       bool             `json:"last,omitempty" yaml:"last,omitempty"`
+	Size       int              `json:"size,omitempty" yaml:"size,omitempty"`
+	Start      int              `json:"start,omitempty" yaml:"start,omitempty"`
+	Total      int              `json:"total,omitempty" yaml:"total,omitempty"`
+	IssueTypes []*MetaIssueType `json:"values,omitempty" yaml:"values,omitempty"`
+}
+
+type MetaIssueTypeDetails struct {
+	IsLast     bool                    `json:"isLast,omitempty" yaml:"isLast,omitempty"`
+	MaxResults int                     `json:"maxResults,omitempty" yaml:"maxResults,omitempty"`
+	StartAt    int                     `json:"startAt,omitempty" yaml:"startAt,omitempty"`
+	Total      int                     `json:"total,omitempty" yaml:"total,omitempty"`
+	Values     []tcontainer.MarshalMap `json:"values,omitempty"`
+}
+
 // GetCreateMetaWithContext makes the api call to get the meta information required to create a ticket
 func (s *IssueService) GetCreateMetaWithContext(ctx context.Context, projectkeys string) (*CreateMetaInfo, *Response, error) {
 	return s.GetCreateMetaWithOptionsWithContext(ctx, &GetQueryOptions{ProjectKeys: projectkeys, Expand: "projects.issuetypes.fields"})
@@ -60,7 +76,7 @@ func (s *IssueService) GetCreateMeta(projectkeys string) (*CreateMetaInfo, *Resp
 
 // GetCreateMetaWithOptionsWithContext makes the api call to get the meta information without requiring to have a projectKey
 func (s *IssueService) GetCreateMetaWithOptionsWithContext(ctx context.Context, options *GetQueryOptions) (*CreateMetaInfo, *Response, error) {
-	apiEndpoint := "rest/api/2/issue/createmeta"
+	apiEndpoint := fmt.Sprintf("rest/api/2/issue/createmeta/%s/issuetypes", options.ProjectKeys)
 
 	req, err := s.client.NewRequestWithContext(ctx, "GET", apiEndpoint, nil)
 	if err != nil {
@@ -73,13 +89,37 @@ func (s *IssueService) GetCreateMetaWithOptionsWithContext(ctx context.Context, 
 		}
 		req.URL.RawQuery = q.Encode()
 	}
+	issuetypes := new(PageOfCreateMetaIssueType)
 
-	meta := new(CreateMetaInfo)
-	resp, err := s.client.Do(req, meta)
-
+	resp, err := s.client.Do(req, issuetypes)
 	if err != nil {
 		return nil, resp, err
 	}
+
+	for i, issueType := range issuetypes.IssueTypes {
+		issueTypeApiEndpoint := fmt.Sprintf("%s/%s", apiEndpoint, issueType.Id)
+		req, err := s.client.NewRequestWithContext(ctx, "GET", issueTypeApiEndpoint, nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		details := new(MetaIssueTypeDetails)
+		if _, err := s.client.Do(req, details); err != nil {
+			return nil, nil, err
+		}
+		issuetypes.IssueTypes[i].Fields = tcontainer.MarshalMap{}
+		for _, v := range details.Values {
+			fieldId, _ := v.String("fieldId")
+			issuetypes.IssueTypes[i].Fields[fieldId] = v
+		}
+
+	}
+
+	meta := new(CreateMetaInfo)
+	meta.Projects = append(meta.Projects, &MetaProject{
+		Key:        options.ProjectKeys,
+		Name:       options.ProjectKeys,
+		IssueTypes: issuetypes.IssueTypes,
+	})
 
 	return meta, resp, nil
 }
@@ -148,19 +188,21 @@ func (p *MetaProject) GetIssueTypeWithName(name string) *MetaIssueType {
 
 // GetMandatoryFields returns a map of all the required fields from the MetaIssueTypes.
 // if a field returned by the api was:
-// "customfield_10806": {
-//					"required": true,
-//					"schema": {
-//						"type": "any",
-//						"custom": "com.pyxis.greenhopper.jira:gh-epic-link",
-//						"customId": 10806
-//					},
-//					"name": "Epic Link",
-//					"hasDefaultValue": false,
-//					"operations": [
-//						"set"
-//					]
-//				}
+//
+//	"customfield_10806": {
+//							"required": true,
+//									"schema": {
+//										"type": "any",
+//										"custom": "com.pyxis.greenhopper.jira:gh-epic-link",
+//										"customId": 10806
+//									},
+//									"name": "Epic Link",
+//									"hasDefaultValue": false,
+//									"operations": [
+//										"set"
+//									]
+//								}
+//
 // the returned map would have "Epic Link" as the key and "customfield_10806" as value.
 // This choice has been made so that the it is easier to generate the create api request later.
 func (t *MetaIssueType) GetMandatoryFields() (map[string]string, error) {
