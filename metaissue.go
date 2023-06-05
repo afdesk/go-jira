@@ -107,7 +107,7 @@ func (s *IssueService) GetCreateMetaWithOptionsWithContextForJira9(ctx context.C
 	return meta, resp, nil
 }
 
-// GetJiraAPIVersion return a major number of the Jira server version.
+// GetJiraAPIVersion returns a major number of the Jira server version.
 // todo: we need to log the errors here
 func (s *IssueService) GetJiraAPIVersion(ctx context.Context) int {
 	// serverInfo API returns general information about the current Jira server.
