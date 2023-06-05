@@ -48,14 +48,6 @@ type MetaIssueType struct {
 	Fields      tcontainer.MarshalMap `json:"fields,omitempty"`
 }
 
-type PageOfCreateMetaIssueType struct {
-	Last       bool             `json:"last,omitempty" yaml:"last,omitempty"`
-	Size       int              `json:"size,omitempty" yaml:"size,omitempty"`
-	Start      int              `json:"start,omitempty" yaml:"start,omitempty"`
-	Total      int              `json:"total,omitempty" yaml:"total,omitempty"`
-	IssueTypes []*MetaIssueType `json:"values,omitempty" yaml:"values,omitempty"`
-}
-
 type MetaIssueTypeDetails struct {
 	IsLast     bool                    `json:"isLast,omitempty" yaml:"isLast,omitempty"`
 	MaxResults int                     `json:"maxResults,omitempty" yaml:"maxResults,omitempty"`
@@ -111,11 +103,7 @@ func (s *IssueService) GetCreateMetaWithOptionsWithContextForJira9(ctx context.C
 			metaProject.IssueTypes[i].Fields[fieldId] = v
 		}
 	}
-
-	meta := &CreateMetaInfo{
-		Projects: []*MetaProject{metaProject},
-	}
-
+	meta := &CreateMetaInfo{Projects: []*MetaProject{metaProject}}
 	return meta, resp, nil
 }
 
