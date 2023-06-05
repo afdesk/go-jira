@@ -219,7 +219,6 @@ func (p *MetaProject) GetIssueTypeWithName(name string) *MetaIssueType {
 
 // GetMandatoryFields returns a map of all the required fields from the MetaIssueTypes.
 // if a field returned by the api was:
-
 // "customfield_10806": {
 //					"required": true,
 //					"schema": {
@@ -233,7 +232,6 @@ func (p *MetaProject) GetIssueTypeWithName(name string) *MetaIssueType {
 //						"set"
 //					]
 //				}
-
 // the returned map would have "Epic Link" as the key and "customfield_10806" as value.
 // This choice has been made so that the it is easier to generate the create api request later.
 func (t *MetaIssueType) GetMandatoryFields() (map[string]string, error) {
