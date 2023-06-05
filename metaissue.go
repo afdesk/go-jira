@@ -78,76 +78,66 @@ func (s *IssueService) GetCreateMeta(projectkeys string) (*CreateMetaInfo, *Resp
 	return s.GetCreateMetaWithContext(context.Background(), projectkeys)
 }
 
-// GetCreateMetaWithOptionsWithContextForJira8 makes the Jira 8 api call to get the meta information without requiring to have a projectKey
+// GetCreateMetaWithOptionsWithContextForJira9 makes the Jira 9 api call to get the meta information without requiring to have a projectKey
 func (s *IssueService) GetCreateMetaWithOptionsWithContextForJira9(ctx context.Context, options *GetQueryOptions) (*CreateMetaInfo, *Response, error) {
-	apiEndpoint := fmt.Sprintf("rest/api/2/issue/createmeta/%s/issuetypes", options.ProjectKeys)
+	apiEndpoint := fmt.Sprintf("rest/api/2/project/%s", options.ProjectKeys)
 
 	req, err := s.client.NewRequestWithContext(ctx, "GET", apiEndpoint, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("creating request to %s got error: %v", apiEndpoint, err)
 	}
-	if options != nil {
-		q, err := query.Values(options)
-		if err != nil {
-			return nil, nil, err
-		}
-		req.URL.RawQuery = q.Encode()
-	}
-	issuetypes := new(PageOfCreateMetaIssueType)
-
-	resp, err := s.client.Do(req, issuetypes)
+	metaProject := new(MetaProject)
+	resp, err := s.client.Do(req, metaProject)
 	if err != nil {
-		return nil, resp, err
+		return nil, resp, fmt.Errorf("error from %q: %v", apiEndpoint, err)
 	}
 
-	for i, issueType := range issuetypes.IssueTypes {
-		issueTypeApiEndpoint := fmt.Sprintf("%s/%s", apiEndpoint, issueType.Id)
+	for i, issueType := range metaProject.IssueTypes {
+		issueTypeApiEndpoint := fmt.Sprintf("rest/api/2/issue/createmeta/%s/issuetypes/%s", options.ProjectKeys, issueType.Id)
 		req, err := s.client.NewRequestWithContext(ctx, "GET", issueTypeApiEndpoint, nil)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("creating request to %s got error: %v", issueTypeApiEndpoint, err)
 		}
 		details := new(MetaIssueTypeDetails)
 		if _, err := s.client.Do(req, details); err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("error from %q: %v", issueTypeApiEndpoint, err)
 		}
-		issuetypes.IssueTypes[i].Fields = tcontainer.MarshalMap{}
+		metaProject.IssueTypes[i].Fields = tcontainer.MarshalMap{}
 		for _, v := range details.Values {
-			fieldId, _ := v.String("fieldId")
-			issuetypes.IssueTypes[i].Fields[fieldId] = v
+			fieldId, err := v.String("fieldId")
+			if err != nil {
+				continue
+			}
+			metaProject.IssueTypes[i].Fields[fieldId] = v
 		}
-
 	}
 
-	meta := new(CreateMetaInfo)
-	meta.Projects = append(meta.Projects, &MetaProject{
-		Key:        options.ProjectKeys,
-		Name:       options.ProjectKeys,
-		IssueTypes: issuetypes.IssueTypes,
-	})
+	meta := &CreateMetaInfo{
+		Projects: []*MetaProject{metaProject},
+	}
 
 	return meta, resp, nil
 }
 
-func (s *IssueService) GetJiraAPIVersion(ctx context.Context) (int, error) {
+// todo: we need to log the errors here
+func (s *IssueService) GetJiraAPIVersion(ctx context.Context) int {
 	apiEndpoint := "rest/api/2/serverInfo"
 	req, err := s.client.NewRequestWithContext(ctx, "GET", apiEndpoint, nil)
 	if err != nil {
-		return 0, err
+		return 0
 	}
 	version := new(JiraServerInfo)
 
 	_, err = s.client.Do(req, version)
 	if err != nil {
-		return 0, err
+		return 0
 	}
-	return version.VersionNumbers[0], nil
+	return version.VersionNumbers[0]
 }
 
 // GetCreateMetaWithOptionsWithContext makes the api call to get the meta information without requiring to have a projectKey
 func (s *IssueService) GetCreateMetaWithOptionsWithContext(ctx context.Context, options *GetQueryOptions) (*CreateMetaInfo, *Response, error) {
-	if jiraV, err := s.GetJiraAPIVersion(ctx); err != nil {
-		return nil, nil, fmt.Errorf("can't get a jira veriosn: %v", err)
-	} else if jiraV >= 9 {
+	if jiraV := s.GetJiraAPIVersion(ctx); jiraV >= 9 {
 		return s.GetCreateMetaWithOptionsWithContextForJira9(ctx, options)
 	}
 	apiEndpoint := "rest/api/2/issue/createmeta/"
