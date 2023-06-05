@@ -107,8 +107,11 @@ func (s *IssueService) GetCreateMetaWithOptionsWithContextForJira9(ctx context.C
 	return meta, resp, nil
 }
 
+// GetJiraAPIVersion return a major number of the Jira server version.
 // todo: we need to log the errors here
 func (s *IssueService) GetJiraAPIVersion(ctx context.Context) int {
+	// serverInfo API returns general information about the current Jira server.
+	// https://docs.atlassian.com/software/jira/docs/api/REST/9.0.0/#serverInfo
 	apiEndpoint := "rest/api/2/serverInfo"
 	req, err := s.client.NewRequestWithContext(ctx, "GET", apiEndpoint, nil)
 	if err != nil {
@@ -120,6 +123,9 @@ func (s *IssueService) GetJiraAPIVersion(ctx context.Context) int {
 	if err != nil {
 		return 0
 	}
+
+	// versionNumbers contains an array with 3 numbers: major, minor, patch.
+	// we need only a major number
 	return version.VersionNumbers[0]
 }
 
@@ -213,6 +219,7 @@ func (p *MetaProject) GetIssueTypeWithName(name string) *MetaIssueType {
 
 // GetMandatoryFields returns a map of all the required fields from the MetaIssueTypes.
 // if a field returned by the api was:
+
 // "customfield_10806": {
 //					"required": true,
 //					"schema": {
@@ -226,6 +233,7 @@ func (p *MetaProject) GetIssueTypeWithName(name string) *MetaIssueType {
 //						"set"
 //					]
 //				}
+
 // the returned map would have "Epic Link" as the key and "customfield_10806" as value.
 // This choice has been made so that the it is easier to generate the create api request later.
 func (t *MetaIssueType) GetMandatoryFields() (map[string]string, error) {
