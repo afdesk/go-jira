@@ -49,10 +49,10 @@ type MetaIssueType struct {
 }
 
 type MetaIssueTypeDetails struct {
-	IsLast     bool                    `json:"isLast,omitempty" yaml:"isLast,omitempty"`
-	MaxResults int                     `json:"maxResults,omitempty" yaml:"maxResults,omitempty"`
-	StartAt    int                     `json:"startAt,omitempty" yaml:"startAt,omitempty"`
-	Total      int                     `json:"total,omitempty" yaml:"total,omitempty"`
+	IsLast     bool                    `json:"isLast,omitempty"`
+	MaxResults int                     `json:"maxResults,omitempty"`
+	StartAt    int                     `json:"startAt,omitempty"`
+	Total      int                     `json:"total,omitempty"`
 	Values     []tcontainer.MarshalMap `json:"values,omitempty"`
 }
 
