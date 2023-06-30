@@ -143,7 +143,7 @@ func (s *IssueService) GetJiraAPIVersion(ctx context.Context) int {
 
 // GetCreateMetaWithOptionsWithContext makes the api call to get the meta information without requiring to have a projectKey
 func (s *IssueService) GetCreateMetaWithOptionsWithContext(ctx context.Context, options *GetQueryOptions) (*CreateMetaInfo, *Response, error) {
-	if jiraV := s.GetJiraAPIVersion(ctx); jiraV > JIRA_API_9 && jiraV != JIRA_API_CLOUD {
+	if jiraV := s.GetJiraAPIVersion(ctx); jiraV >= JIRA_API_9 && jiraV != JIRA_API_CLOUD {
 		return s.GetCreateMetaWithOptionsWithContextForJira9(ctx, options)
 	}
 	apiEndpoint := "rest/api/2/issue/createmeta/"
