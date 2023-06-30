@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	JIRA_API_8     = 8
 	JIRA_API_9     = 9
 	JIRA_API_CLOUD = 1001
 )
