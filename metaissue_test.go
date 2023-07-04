@@ -11,14 +11,14 @@ func TestIssueService_GetCreateMeta_Success(t *testing.T) {
 	setup()
 	defer teardown()
 
-	testVersionEndpoint := "rest/api/2/serverInfo"
+	testVersionEndpoint := "/rest/api/2/serverInfo"
 	testMux.HandleFunc(testVersionEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		testRequestURL(t, r, testVersionEndpoint)
-		fmt.Fprint(w, `{"baseUrl":"http://localhost:8088","version":"8.13.0","versionNumbers":[8,13,0],"deploymentType":"Server","buildNumber":813000,"buildDate":"2020-10-07T00:00:00.000+0000","databaseBuildNumber":813000,"serverTime":"2023-07-04T07:37:30.228+0000","scmInfo":"8c68d8036d917652ef7564456d59d80184b5a77e","serverTitle":"Jira"}`)
+		fmt.Fprint(w, `{"baseUrl":"https://my.jira.com","version":"8.13.0","versionNumbers":[8,13,0],"deploymentType":"Server","buildNumber":813000,"buildDate":"2020-10-07T00:00:00.000+0000","databaseBuildNumber":813000,"serverTime":"2023-07-04T07:37:30.228+0000","scmInfo":"8c68d8036d917652ef7564456d59d80184b5a77e","serverTitle":"Jira"}`)
 	})
 
-	testAPIEndpoint := "rest/api/2/issue/createmeta"
+	testAPIEndpoint := "/rest/api/2/issue/createmeta/"
 	testMux.HandleFunc(testAPIEndpoint, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		testRequestURL(t, r, testAPIEndpoint)
