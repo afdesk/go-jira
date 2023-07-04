@@ -9,10 +9,7 @@ import (
 	"github.com/trivago/tgo/tcontainer"
 )
 
-const (
-	JIRA_API_9     = 9
-	JIRA_API_CLOUD = 1001
-)
+const defaultJiraAPI9 = false
 
 // CreateMetaInfo contains information about fields and their attributed to create a ticket.
 type CreateMetaInfo struct {
@@ -115,34 +112,38 @@ func (s *IssueService) GetCreateMetaWithOptionsWithContextForJira9(ctx context.C
 
 // GetJiraAPIVersion returns a major number of the Jira server version.
 // todo: we need to log the errors here
-func (s *IssueService) GetJiraAPIVersion(ctx context.Context) int {
+func (s *IssueService) isJiraAPI9(ctx context.Context) bool {
 	// serverInfo API returns general information about the current Jira server.
 	// https://docs.atlassian.com/software/jira/docs/api/REST/9.0.0/#serverInfo
 	apiEndpoint := "rest/api/2/serverInfo"
 	req, err := s.client.NewRequestWithContext(ctx, "GET", apiEndpoint, nil)
 	if err != nil {
-		return 0
+		return defaultJiraAPI9
 	}
 	version := new(JiraServerInfo)
 
 	_, err = s.client.Do(req, version)
 	if err != nil {
-		return 0
+		return defaultJiraAPI9
 	}
 
 	// Jira Cloud API returns a bit strange version number now (1001)
+	// now Jira Cloud API doesn't support 9
 	if version.DeploymentType == "Cloud" {
-		return JIRA_API_CLOUD
+		return false
 	}
 
 	// versionNumbers contains an array with 3 numbers: major, minor, patch.
 	// we need only a major number
-	return version.VersionNumbers[0]
+	if version.VersionNumbers[0] == 9 {
+		return true
+	}
+	return false
 }
 
 // GetCreateMetaWithOptionsWithContext makes the api call to get the meta information without requiring to have a projectKey
 func (s *IssueService) GetCreateMetaWithOptionsWithContext(ctx context.Context, options *GetQueryOptions) (*CreateMetaInfo, *Response, error) {
-	if jiraV := s.GetJiraAPIVersion(ctx); jiraV >= JIRA_API_9 && jiraV != JIRA_API_CLOUD {
+	if s.isJiraAPI9(ctx) {
 		return s.GetCreateMetaWithOptionsWithContextForJira9(ctx, options)
 	}
 	apiEndpoint := "rest/api/2/issue/createmeta/"
