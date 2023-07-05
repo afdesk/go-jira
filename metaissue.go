@@ -135,7 +135,7 @@ func (s *IssueService) isJiraAPI9(ctx context.Context) bool {
 
 	// versionNumbers contains an array with 3 numbers: major, minor, patch.
 	// we need only a major number
-	if version.VersionNumbers[0] == 9 {
+	if version.VersionNumbers[0] >= 9 {
 		return true
 	}
 	return false
